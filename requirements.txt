@@ -1,0 +1,10 @@
+streamlit
+pandas
+sqlalchemy
+psycopg[binary]
+python-dotenv
+plotly
+prophet
+fastapi
+uvicorn
+pydantic
