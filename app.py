@@ -376,7 +376,13 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    st.error("DATABASE_URL was not found in `.env`. Please check your configuration.")
+    try:
+        DATABASE_URL = st.secrets.get("DATABASE_URL")
+    except Exception:
+        DATABASE_URL = None
+
+if not DATABASE_URL:
+    st.error("DATABASE_URL was not found in `.env` or Streamlit Secrets. Please check your configuration.")
     st.stop()
 
 if DATABASE_URL.startswith("postgres://"):

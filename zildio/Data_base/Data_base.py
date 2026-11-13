@@ -13,7 +13,14 @@ load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL not set. Add it to your .env file in the project root.")
+    try:
+        import streamlit as st
+        DATABASE_URL = st.secrets.get("DATABASE_URL")
+    except Exception:
+        DATABASE_URL = None
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL not set. Add it to your .env file or Streamlit Secrets.")
 
 # Normalize postgres URL to use psycopg v3 driver if needed
 if DATABASE_URL:
