@@ -468,21 +468,21 @@ if not st.session_state.data_ready:
     ''', unsafe_allow_html=True)
 
     st.markdown("### Start in 3 simple steps")
-    st.caption("Upload your historical sales, inventory snapshot, and SKU master files. FORESIGHT will clean the data, forecast demand, and calculate inventory risk automatically.")
+    st.caption("Upload your historical sales, inventory snapshot, and SKU master files. FORESIGHT will clean the data, forecast demand, and calculate inventory risk automatically. (Sample files are available in the `test_data/` directory).")
 
     col_sales, col_inventory, col_sku = st.columns(3)
 
     with col_sales:
         st.markdown("**1. Sales history**")
-        sales_upload = st.file_uploader("Upload sales CSV", type=["csv"], key="onboard_sales", help="Historical sales transactions. Required for demand forecasting.")
+        sales_upload = st.file_uploader("Upload sales CSV", type=["csv"], key="onboard_sales", help="Historical sales transactions. Required for demand forecasting. (e.g. test_data/sales_history.csv)")
 
     with col_inventory:
         st.markdown("**2. Inventory snapshot**")
-        inventory_upload = st.file_uploader("Upload inventory CSV", type=["csv"], key="onboard_inventory", help="Latest/current inventory information used for stock-risk analysis.")
+        inventory_upload = st.file_uploader("Upload inventory CSV", type=["csv"], key="onboard_inventory", help="Latest/current inventory information used for stock-risk analysis. (e.g. test_data/inventory_snapshots.csv)")
 
     with col_sku:
         st.markdown("**3. SKU master**")
-        sku_upload = st.file_uploader("Upload SKU master CSV", type=["csv"], key="onboard_sku", help="Product reference data used to validate and identify SKUs.")
+        sku_upload = st.file_uploader("Upload SKU master CSV", type=["csv"], key="onboard_sku", help="Product reference data used to validate and identify SKUs. (e.g. test_data/sku_master.csv)")
 
     files_ready = bool(sales_upload and inventory_upload and sku_upload)
     st.write("")
@@ -490,12 +490,15 @@ if not st.session_state.data_ready:
     if files_ready:
         st.success("All three files are ready. You can run the analysis.")
     else:
-        st.info("Please upload all three files to enable the analysis.")
+        st.info("Upload all three files above, or click 'Run with Sample Test Data' to test immediately.")
 
-    run_col, skip_col = st.columns([1.4, 1])
+    run_col, sample_col, skip_col = st.columns([1.2, 1.2, 1])
 
     with run_col:
-        run_clicked = st.button("🚀 Analyze Data & Open Dashboard", type="primary", use_container_width=True, disabled=not files_ready)
+        run_clicked = st.button("🚀 Analyze Uploaded Data", type="primary", use_container_width=True, disabled=not files_ready)
+
+    with sample_col:
+        sample_clicked = st.button("🧪 Run with Sample Test Data", use_container_width=True, help="Automatically run the pipeline using the sample CSV files in test_data/.")
 
     with skip_col:
         skip_clicked = st.button("Open Existing Dashboard", use_container_width=True, help="Use the data already available in the connected database.")
@@ -505,6 +508,21 @@ if not st.session_state.data_ready:
         if success:
             st.session_state.data_ready = True
             st.rerun()
+
+    if sample_clicked:
+        test_dir = BASE_DIR / "test_data"
+        if not test_dir.exists():
+            test_dir = BASE_DIR.parent / "test data"
+        sample_sales = test_dir / "sales_history.csv"
+        sample_inv = test_dir / "inventory_snapshots.csv"
+        sample_sku = test_dir / "sku_master.csv"
+        if sample_sales.exists() and sample_inv.exists() and sample_sku.exists():
+            success = run_pipeline(sample_sales, sample_inv, sample_sku)
+            if success:
+                st.session_state.data_ready = True
+                st.rerun()
+        else:
+            st.error("Sample test files were not found in test_data/.")
 
     if skip_clicked:
         st.session_state.data_ready = True

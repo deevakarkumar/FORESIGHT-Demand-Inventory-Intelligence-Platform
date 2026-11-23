@@ -151,6 +151,10 @@ python -m streamlit run app.py
 ```
 Open your browser at **[http://localhost:8501](http://localhost:8501)**.
 
+> **Testing with Sample Data:**  
+> To test the pipeline easily, sample client extract files (`sales_history.csv`, `inventory_snapshots.csv`, and `sku_master.csv`) are included directly in the [`test_data/`](test_data/) folder. You can upload them in the dashboard landing screen or click **"🧪 Run with Sample Test Data"** to run the complete end-to-end pipeline automatically.
+
+
 ### 5. Launch the FastAPI Scoring Service
 ```powershell
 uvicorn service.api:app --host 0.0.0.0 --port 8000
