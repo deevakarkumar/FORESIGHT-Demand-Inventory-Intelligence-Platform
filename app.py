@@ -6,6 +6,8 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+import io
+import zipfile
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -414,6 +416,30 @@ def load_table(table_name):
 if "data_ready" not in st.session_state:
     st.session_state.data_ready = False
 
+@st.cache_data
+def get_sample_data_zip():
+    test_dir = BASE_DIR / "test_data"
+    if not test_dir.exists():
+        test_dir = BASE_DIR.parent / "test data"
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for fname in ["sales_history.csv", "inventory_snapshots.csv", "sku_master.csv"]:
+            fpath = test_dir / fname
+            if fpath.exists():
+                zip_file.write(fpath, arcname=fname)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+@st.cache_data
+def get_sample_file_bytes(filename):
+    test_dir = BASE_DIR / "test_data"
+    if not test_dir.exists():
+        test_dir = BASE_DIR.parent / "test data"
+    fpath = test_dir / filename
+    if fpath.exists():
+        return fpath.read_bytes()
+    return None
+
 def run_pipeline(sales_file, inventory_file, sku_file):
     try:
         df_sales_raw = pd.read_csv(sales_file)
@@ -468,21 +494,46 @@ if not st.session_state.data_ready:
     ''', unsafe_allow_html=True)
 
     st.markdown("### Start in 3 simple steps")
-    st.caption("Upload your historical sales, inventory snapshot, and SKU master files. FORESIGHT will clean the data, forecast demand, and calculate inventory risk automatically. (Sample files are available in the `test_data/` directory).")
+    st.caption("Upload your historical sales, inventory snapshot, and SKU master files. FORESIGHT will clean the data, forecast demand, and calculate inventory risk automatically.")
+
+    with st.expander("📥 Need sample files to test? Download test data package", expanded=False):
+        d_col1, d_col2 = st.columns([1.3, 2])
+        with d_col1:
+            zip_bytes = get_sample_data_zip()
+            if zip_bytes:
+                st.download_button(
+                    label="📦 Download All 3 Files (.ZIP)",
+                    data=zip_bytes,
+                    file_name="foresight_sample_test_data.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    help="Downloads sales_history.csv, inventory_snapshots.csv, and sku_master.csv in one archive."
+                )
+        with d_col2:
+            st.caption("Includes all 3 operational extracts ready to upload: sales transactions (16k rows), inventory snapshots (19k rows), and SKU master.")
 
     col_sales, col_inventory, col_sku = st.columns(3)
 
     with col_sales:
         st.markdown("**1. Sales history**")
-        sales_upload = st.file_uploader("Upload sales CSV", type=["csv"], key="onboard_sales", help="Historical sales transactions. Required for demand forecasting. (e.g. test_data/sales_history.csv)")
+        sales_upload = st.file_uploader("Upload sales CSV", type=["csv"], key="onboard_sales", help="Historical sales transactions. Required for demand forecasting.")
+        sample_sales_bytes = get_sample_file_bytes("sales_history.csv")
+        if sample_sales_bytes:
+            st.download_button("📥 Download sample sales CSV", data=sample_sales_bytes, file_name="sales_history.csv", mime="text/csv", key="dl_sample_sales", use_container_width=True)
 
     with col_inventory:
         st.markdown("**2. Inventory snapshot**")
-        inventory_upload = st.file_uploader("Upload inventory CSV", type=["csv"], key="onboard_inventory", help="Latest/current inventory information used for stock-risk analysis. (e.g. test_data/inventory_snapshots.csv)")
+        inventory_upload = st.file_uploader("Upload inventory CSV", type=["csv"], key="onboard_inventory", help="Latest/current inventory information used for stock-risk analysis.")
+        sample_inv_bytes = get_sample_file_bytes("inventory_snapshots.csv")
+        if sample_inv_bytes:
+            st.download_button("📥 Download sample inventory CSV", data=sample_inv_bytes, file_name="inventory_snapshots.csv", mime="text/csv", key="dl_sample_inv", use_container_width=True)
 
     with col_sku:
         st.markdown("**3. SKU master**")
-        sku_upload = st.file_uploader("Upload SKU master CSV", type=["csv"], key="onboard_sku", help="Product reference data used to validate and identify SKUs. (e.g. test_data/sku_master.csv)")
+        sku_upload = st.file_uploader("Upload SKU master CSV", type=["csv"], key="onboard_sku", help="Product reference data used to validate and identify SKUs.")
+        sample_sku_bytes = get_sample_file_bytes("sku_master.csv")
+        if sample_sku_bytes:
+            st.download_button("📥 Download sample SKU master CSV", data=sample_sku_bytes, file_name="sku_master.csv", mime="text/csv", key="dl_sample_sku", use_container_width=True)
 
     files_ready = bool(sales_upload and inventory_upload and sku_upload)
     st.write("")
@@ -693,6 +744,19 @@ with st.sidebar:
         if st.button("⬆️ Upload", use_container_width=True):
             st.session_state.data_ready = False
             st.rerun()
+
+    st.divider()
+    sidebar_zip = get_sample_data_zip()
+    if sidebar_zip:
+        st.download_button(
+            label="📦 Download Test Data (.ZIP)",
+            data=sidebar_zip,
+            file_name="foresight_sample_test_data.zip",
+            mime="application/zip",
+            key="sidebar_dl_zip",
+            use_container_width=True,
+            help="Download all 3 sample CSV files (sales_history, inventory_snapshots, sku_master)"
+        )
 
     st.caption("FORESIGHT • Demand & Inventory Intelligence")
 
